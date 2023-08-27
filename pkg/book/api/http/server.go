@@ -14,9 +14,9 @@ import (
 )
 
 type Server struct {
-	app                  *fiber.App
-	requestsResponseLogs *middleware.LogsService
-	BookService          pkg.BookService
+	app         *fiber.App
+	reqRespLogs *middleware.LogsService
+	BookService pkg.BookService
 }
 
 func New() *Server {
@@ -30,9 +30,9 @@ func New() *Server {
 	s.app.Use(logger.New(logger.Config{
 		Format: "${pid} ${locals:requestid} ${time} ${status} - ${method} ${path}​\n",
 	}))
-	s.requestsResponseLogs = middleware.NewLogsService()
+	s.reqRespLogs = middleware.NewLogsService()
 	s.app.Use(
-		s.requestsResponseLogs.Handle(),
+		s.reqRespLogs.Handle(),
 	)
 
 	api := s.app.Group("/api")
@@ -52,11 +52,11 @@ func (s *Server) Listen(tcpAddr string) error {
 	}()
 
 	// Block until we receive a signal
-	<-c
+	_ = <-c
 
 	// Shut down gracefully with a timeout. The timeout can be adjusted as needed
 	log.Println("Gracefully shutting down...")
-	s.requestsResponseLogs.Close()
+	s.reqRespLogs.Close()
 	shutdownErr := s.app.Shutdown()
 	if shutdownErr != nil {
 		log.Fatalf("Error shutting down: %v", shutdownErr)
