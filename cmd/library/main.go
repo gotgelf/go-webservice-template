@@ -2,7 +2,7 @@ package main
 
 import (
 	"docker/pkg/book/api/http"
-	"docker/pkg/book/api/storage/memory"
+	"docker/pkg/book/api/service/memory"
 	"fmt"
 	"log"
 )

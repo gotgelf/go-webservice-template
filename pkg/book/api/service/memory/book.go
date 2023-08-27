@@ -23,6 +23,7 @@ func NewBookService(DSN string) (*BookService, error) {
 }
 
 func (s *BookService) CreateBook(ctx context.Context, book *pkg.Book) error {
+
 	s.RWMutex.Lock()
 	defer s.RWMutex.Unlock()
 	bookUUID := uuid.New().String()
