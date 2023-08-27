@@ -4,6 +4,8 @@ import (
 	"docker/pkg"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/bytebufferpool"
+	"io"
 	"sync"
 )
 
@@ -11,12 +13,15 @@ type LogsService struct {
 	channel   chan *pkg.Log
 	shutdown  chan bool
 	waitGroup sync.WaitGroup
+	output    io.Writer
 }
 
-func NewLogsService() *LogsService {
+func NewLogsService(config ...Config) *LogsService {
+	cfg := configDefault(config...)
 	service := &LogsService{
 		channel:  make(chan *pkg.Log, 5),
 		shutdown: make(chan bool),
+		output:   cfg.Output,
 	}
 	service.waitGroup.Add(1)
 
@@ -65,12 +70,19 @@ func (ls *LogsService) addLog(log *pkg.Log) error {
 }
 
 func (ls *LogsService) flushRequestsLogs(logs []*pkg.Log) {
+	// Get new buffer
+	buf := bytebufferpool.Get()
+
 	for _, v := range logs {
-		fmt.Printf("Request ID: %s\n", v.RequestID)
-		fmt.Printf("Request Body: %s", v.Body)
-		fmt.Printf("Response Status Code: %d", v.ResponseStatusCode)
-		fmt.Println("-----")
+		_, _ = buf.WriteString("\nReqResp log start: \n")
+		_, _ = buf.WriteString(fmt.Sprintf("Request ID: %s\n", v.RequestID))
+		_, _ = buf.WriteString(fmt.Sprintf("Request Body: %s\n", v.Body))
+		_, _ = buf.WriteString(fmt.Sprintf("Response Status Code: %d", v.ResponseStatusCode))
+		_, _ = buf.WriteString("\nReqResp log end\n")
 	}
+	_, _ = ls.output.Write(buf.Bytes())
+
+	bytebufferpool.Put(buf) //nolint:errcheck // This will never fail
 }
 
 func (ls *LogsService) Close() error {
