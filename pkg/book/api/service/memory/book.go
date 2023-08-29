@@ -59,7 +59,7 @@ func (s *BookService) GetBook(ctx context.Context, bookUUID uuid.UUID) (*pkg.Boo
 
 	existingBook, ok := s.db[bookUUID.String()]
 	if !ok {
-		return nil, fmt.Errorf("book with UUID %s not found", bookUUID.String())
+		return nil, pkg.Errorf(pkg.ENOTFOUND, "book with UUID %s not found", bookUUID.String())
 	}
 	return existingBook, nil
 }

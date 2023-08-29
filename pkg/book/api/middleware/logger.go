@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"docker/pkg"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/bytebufferpool"
@@ -9,8 +8,14 @@ import (
 	"sync"
 )
 
+type Log struct {
+	RequestID          string
+	Body               string
+	ResponseStatusCode int
+}
+
 type LogsService struct {
-	channel   chan *pkg.Log
+	channel   chan *Log
 	shutdown  chan bool
 	waitGroup sync.WaitGroup
 	output    io.Writer
@@ -19,7 +24,7 @@ type LogsService struct {
 func NewLogsService(config ...Config) *LogsService {
 	cfg := configDefault(config...)
 	service := &LogsService{
-		channel:  make(chan *pkg.Log, 5),
+		channel:  make(chan *Log, 5),
 		shutdown: make(chan bool),
 		output:   cfg.Output,
 	}
@@ -34,7 +39,7 @@ func (ls *LogsService) Handle() fiber.Handler {
 	return func(c *fiber.Ctx) (err error) {
 		body := string(c.Request().Body())
 		requestID := c.Locals("requestid").(string)
-		_ = ls.addLog(&pkg.Log{
+		_ = ls.addLog(&Log{
 			RequestID:          requestID,
 			Body:               body,
 			ResponseStatusCode: c.Response().StatusCode(),
@@ -46,14 +51,14 @@ func (ls *LogsService) Handle() fiber.Handler {
 
 func (ls *LogsService) listen() {
 	defer ls.waitGroup.Done()
-	var requestsLogs []*pkg.Log
+	var requestsLogs []*Log
 	for {
 		select {
 		case log := <-ls.channel:
 			requestsLogs = append(requestsLogs, log)
 			if len(requestsLogs) >= 5 {
 				ls.flushRequestsLogs(requestsLogs)
-				requestsLogs = []*pkg.Log{}
+				requestsLogs = []*Log{}
 			}
 		case <-ls.shutdown:
 			if len(requestsLogs) > 0 {
@@ -64,12 +69,12 @@ func (ls *LogsService) listen() {
 	}
 }
 
-func (ls *LogsService) addLog(log *pkg.Log) error {
+func (ls *LogsService) addLog(log *Log) error {
 	ls.channel <- log
 	return nil
 }
 
-func (ls *LogsService) flushRequestsLogs(logs []*pkg.Log) {
+func (ls *LogsService) flushRequestsLogs(logs []*Log) {
 	// Get new buffer
 	buf := bytebufferpool.Get()
 

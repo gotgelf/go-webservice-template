@@ -59,7 +59,11 @@ func (s *Server) GetBook(c *fiber.Ctx) error {
 
 	book, err := s.BookService.GetBook(context.TODO(), bookUUID)
 	if err != nil {
-		return err
+		code := pkg.ErrorCode(err)
+		if code == pkg.ENOTFOUND {
+			return c.Status(fiber.StatusNotFound).JSON(
+				ErrorResponse{Error: err.Error()})
+		}
 	}
 
 	return c.JSON(book)

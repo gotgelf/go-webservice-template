@@ -5,6 +5,7 @@ import (
 	"docker/pkg"
 	"docker/pkg/book/api/service/memory"
 	"encoding/json"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -164,7 +165,7 @@ func TestGetBook(t *testing.T) {
 			t.Fatalf("failed to decode body: %v", err)
 		}
 
-		notExistingUUID := respBook.UUID + "not-existing"
+		notExistingUUID := uuid.UUID{}.String()
 		req = httptest.NewRequest("GET", "/api/v1/books/"+notExistingUUID, nil)
 		resp, err = s.app.Test(req)
 
@@ -173,8 +174,8 @@ func TestGetBook(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if code := resp.StatusCode; code != http.StatusInternalServerError {
-			t.Fatalf("expected code: %d, got: %d", http.StatusInternalServerError, code)
+		if code := resp.StatusCode; code != http.StatusNotFound {
+			t.Fatalf("expected code: %d, got: %d", http.StatusNotFound, code)
 		}
 	})
 }
